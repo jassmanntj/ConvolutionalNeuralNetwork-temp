@@ -171,8 +171,13 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 			e.printStackTrace();
 		}
 	}
-	
-	public DoubleMatrix loadTheta(String filename, DoubleMatrix input) {
+
+    @Override
+    public DoubleMatrix feedForward(DoubleMatrix input) {
+        return compute(input);
+    }
+
+    public DoubleMatrix loadTheta(String filename, DoubleMatrix input) {
 		try {
 			FileReader fr = new FileReader(filename);
 			@SuppressWarnings("resource")

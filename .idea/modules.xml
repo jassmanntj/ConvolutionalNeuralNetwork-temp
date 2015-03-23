@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ConvolutionalNeuralNetwork.iml" filepath="$PROJECT_DIR$/ConvolutionalNeuralNetwork.iml" />
       <module fileurl="file://$PROJECT_DIR$/ConvolutionalNeuralNetwork-Working-Version.iml" filepath="$PROJECT_DIR$/ConvolutionalNeuralNetwork-Working-Version.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ConvolutionalNeuralNetwork-Working-Version.iml" filepath="$PROJECT_DIR$/ConvolutionalNeuralNetwork-Working-Version.iml" />
     </modules>
   </component>
 </project>

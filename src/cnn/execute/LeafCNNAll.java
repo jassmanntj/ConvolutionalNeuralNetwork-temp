@@ -13,7 +13,7 @@ import cnn.*;
 import org.jblas.DoubleMatrix;
 
 public class LeafCNNAll {
-    private static final boolean load = true;
+    private static final boolean load = false;
     DoubleMatrix images = null;
     DoubleMatrix labels = null;
     DoubleMatrix testImages = null;
@@ -37,7 +37,7 @@ public class LeafCNNAll {
     public void run() throws Exception {
         int patchSize = 5;
         int poolSize = 4;
-        int numPatches = 32;
+        int numPatches = 64;
         //int hiddenSize = 200;
         int imageRows = 80;
         int imageColumns = 60;
@@ -47,28 +47,34 @@ public class LeafCNNAll {
         double alpha = 0.5;
         int channels = 3;
         int hiddenSize = 250;
+        int iterations = 500;
+        boolean loaded = false;
 
         ImageLoader loader = new ImageLoader();
         File folder = new File("C:/Users/jassmanntj/Desktop/CA-Leaves");
         HashMap<String, Double> labelMap = loader.getLabelMap(folder);
-        if(!load) loader.loadFolder(folder, channels, imageColumns, imageRows, labelMap);
         for(int i = 0; i < 30; i++) {
-            String resFile = "32-Cross-5-4-500."+i;
-            if (!load || !(new File("data/TrainImgs-32-Cross-5-4-32-"+i+".mat").exists())) {
+            String resFile = numPatches+"-Cross-"+patchSize+"-"+poolSize+"-"+iterations+"."+i;
+            if (!load || !(new File("data/TrainImgs-"+resFile+".mat").exists())) {
+                if(!loaded) {
+                    loader.loadFolder(folder, channels, imageColumns, imageRows, labelMap);
+                    loaded = true;
+                }
                 loader.sortImgs(i);
                 images = loader.getImgs();
                 labels = loader.getLbls();
                 testImages = loader.getTestImgs();
                 testLabels = loader.getTestLbls();
-                images.save("data/TrainImgs-32-Cross-5-4-32-"+i+".mat");
-                labels.save("data/TrainLbls-32-Cross-5-4-32-"+i+".mat");
-                testImages.save("data/TestImgs-32-Cross-5-4-32-"+i+".mat");
-                testLabels.save("data/TestLbls-32-Cross-5-4-32-"+i+".mat");
-            } else {
-                images = new DoubleMatrix("data/TrainImgs-32-Cross-5-4-32-"+i+".mat");
-                labels = new DoubleMatrix("data/TrainLbls-32-Cross-5-4-32-"+i+".mat");
-                testImages = new DoubleMatrix("data/TestImgs-32-Cross-5-4-32-"+i+".mat");
-                testLabels = new DoubleMatrix("data/TestLbls-32-Cross-5-4-32-"+i+".mat");
+                images.save("data/TrainImgs-"+resFile+".mat");
+                labels.save("data/TrainLbls-"+resFile+".mat");
+                testImages.save("data/TestImgs-"+resFile+".mat");
+                testLabels.save("data/TestLbls-"+resFile+".mat");
+            }
+            else {
+                images = new DoubleMatrix("data/TrainImgs-"+resFile+".mat");
+                labels = new DoubleMatrix("data/TrainLbls-"+resFile+".mat");
+                testImages = new DoubleMatrix("data/TestImgs-"+resFile+".mat");
+                testLabels = new DoubleMatrix("data/TestLbls-"+resFile+".mat");
             }
 
             ConvolutionLayer cl = new ConvolutionLayer(channels, patchSize, imageRows, imageColumns, poolSize, numPatches, sparsityParam, lambda, beta, alpha, true);
@@ -79,7 +85,7 @@ public class LeafCNNAll {
             NeuralNetworkLayer[] nnl = {cl, dn};
             ConvolutionalNeuralNetwork cnn = new ConvolutionalNeuralNetwork(nnl, resFile);
 
-            DoubleMatrix result = cnn.train(images, labels, 500);
+            DoubleMatrix result = cnn.train(images, labels, iterations);
             int[][] results = Utils.computeResults(result);
 
             DoubleMatrix testRes = cnn.computeRes(testImages);
