@@ -6,6 +6,7 @@ package cnn.execute;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -13,23 +14,24 @@ import cnn.*;
 import org.jblas.DoubleMatrix;
 
 public class LeafCNNAll {
-    private static final boolean load = false;
+    private static final boolean load = true;
     DoubleMatrix images = null;
     DoubleMatrix labels = null;
     DoubleMatrix testImages = null;
     DoubleMatrix testLabels = null;
     double[] correctTest;
     double[] correctTrain;
+    double[] count;
+    double[] totalCount;
     int totalTest;
     int totalTrain;
+    int numPatches = 20;
 
     public static void main(String[] args) throws Exception {
         new LeafCNNAll().run();
     }
 
     public LeafCNNAll() {
-        correctTest = new double[3];
-        correctTrain = new double[3];
         totalTest = 0;
         totalTrain = 0;
     }
@@ -37,7 +39,6 @@ public class LeafCNNAll {
     public void run() throws Exception {
         int patchSize = 5;
         int poolSize = 4;
-        int numPatches = 64;
         //int hiddenSize = 200;
         int imageRows = 80;
         int imageColumns = 60;
@@ -47,90 +48,100 @@ public class LeafCNNAll {
         double alpha = 0.5;
         int channels = 3;
         int hiddenSize = 250;
-        int iterations = 500;
+        int iterations = 200;
         boolean loaded = false;
 
         ImageLoader loader = new ImageLoader();
         File folder = new File("C:/Users/jassmanntj/Desktop/CA-Leaves");
         HashMap<String, Double> labelMap = loader.getLabelMap(folder);
-        for(int i = 0; i < 30; i++) {
-            String resFile = numPatches+"-Cross-"+patchSize+"-"+poolSize+"-"+iterations+"."+i;
-            if (!load || !(new File("data/TrainImgs-"+resFile+".mat").exists())) {
-                if(!loaded) {
-                    loader.loadFolder(folder, channels, imageColumns, imageRows, labelMap);
-                    loaded = true;
+        count = new double[labelMap.size()];
+        totalCount = new double[labelMap.size()];
+        correctTest = new double[labelMap.size()];
+        correctTrain = new double[labelMap.size()];
+        while(numPatches < 300) {
+            for (int i = 0; i < 30; i += 3) {
+                String resFile = numPatches + "-Cross-" + patchSize + "-" + poolSize + "-" + iterations + "." + i;
+                if (!load || !(new File("data/TrainImgs-" + resFile + ".mat").exists())) {
+                    if (!loaded) {
+                        loader.loadFolder(folder, channels, imageColumns, imageRows, labelMap);
+                        loaded = true;
+                    }
+                    loader.sortImgs(i);
+                    images = loader.getImgs();
+                    labels = loader.getLbls();
+                    testImages = loader.getTestImgs();
+                    testLabels = loader.getTestLbls();
+                    images.save("data/TrainImgs-" + resFile + ".mat");
+                    labels.save("data/TrainLbls-" + resFile + ".mat");
+                    testImages.save("data/TestImgs-" + resFile + ".mat");
+                    testLabels.save("data/TestLbls-" + resFile + ".mat");
+                } else {
+                    images = new DoubleMatrix("data/TrainImgs-" + resFile + ".mat");
+                    labels = new DoubleMatrix("data/TrainLbls-" + resFile + ".mat");
+                    testImages = new DoubleMatrix("data/TestImgs-" + resFile + ".mat");
+                    testLabels = new DoubleMatrix("data/TestLbls-" + resFile + ".mat");
                 }
-                loader.sortImgs(i);
-                images = loader.getImgs();
-                labels = loader.getLbls();
-                testImages = loader.getTestImgs();
-                testLabels = loader.getTestLbls();
-                images.save("data/TrainImgs-"+resFile+".mat");
-                labels.save("data/TrainLbls-"+resFile+".mat");
-                testImages.save("data/TestImgs-"+resFile+".mat");
-                testLabels.save("data/TestLbls-"+resFile+".mat");
+
+                ConvolutionLayer cl = new ConvolutionLayer(channels, patchSize, imageRows, imageColumns, poolSize, numPatches, sparsityParam, lambda, beta, alpha, true);
+                SparseAutoencoder ae2 = new SparseAutoencoder(cl.getOutputSize(), hiddenSize, cl.getOutputSize(), sparsityParam, lambda, beta, alpha);
+                SoftmaxClassifier sc = new SoftmaxClassifier(1e-4);
+                SparseAutoencoder[] saes = {ae2};
+                DeepNN dn = new DeepNN(saes, sc);
+                NeuralNetworkLayer[] nnl = {cl, dn};
+                ConvolutionalNeuralNetwork cnn = new ConvolutionalNeuralNetwork(nnl, "data/" + resFile);
+                System.out.println("LABELS:" + labels.rows + "x" + labels.columns);
+                DoubleMatrix result = cnn.train(images, labels, iterations);
+                int[][] results = Utils.computeResults(result);
+
+                DoubleMatrix testRes = cnn.computeRes(testImages);
+                int[][] testResult = Utils.computeResults(testRes);
+
+
+                System.out.println("TRAIN");
+                compareResults(results, labels, false);
+                System.out.println("TEST");
+                compareResults(testResult, testLabels, true);
+                compareClasses(testResult, testLabels, labelMap);
             }
-            else {
-                images = new DoubleMatrix("data/TrainImgs-"+resFile+".mat");
-                labels = new DoubleMatrix("data/TrainLbls-"+resFile+".mat");
-                testImages = new DoubleMatrix("data/TestImgs-"+resFile+".mat");
-                testLabels = new DoubleMatrix("data/TestLbls-"+resFile+".mat");
-            }
-
-            ConvolutionLayer cl = new ConvolutionLayer(channels, patchSize, imageRows, imageColumns, poolSize, numPatches, sparsityParam, lambda, beta, alpha, true);
-            SparseAutoencoder ae2 = new SparseAutoencoder(cl.getOutputSize(), hiddenSize, cl.getOutputSize(), sparsityParam, lambda, beta, alpha);
-            SoftmaxClassifier sc = new SoftmaxClassifier(1e-4);
-            SparseAutoencoder[] saes = {ae2};
-            DeepNN dn = new DeepNN(saes, sc);
-            NeuralNetworkLayer[] nnl = {cl, dn};
-            ConvolutionalNeuralNetwork cnn = new ConvolutionalNeuralNetwork(nnl, resFile);
-
-            DoubleMatrix result = cnn.train(images, labels, iterations);
-            int[][] results = Utils.computeResults(result);
-
-            DoubleMatrix testRes = cnn.computeRes(testImages);
-            int[][] testResult = Utils.computeResults(testRes);
-            System.out.println("TRAIN");
-            compareResults(results, labels, false);
-            System.out.println("TEST");
-            compareResults(testResult, testLabels, true);
-            compareClasses(testResult, testLabels, labelMap);
+            numPatches += 10;
         }
 
     }
 
-    public void compareResults(int[][] result, DoubleMatrix labels, boolean test) {
-        double sum1 = 0;
-        double sum2 = 0;
-        double sum3 = 0;
+    public void compareResults(int[][] result, DoubleMatrix labels, boolean test) throws IOException {
+        FileWriter fw = new FileWriter("data/ConvolutionSizeResults");
+        BufferedWriter bw = new BufferedWriter(fw);
+        bw.write(numPatches+"\n");
+        double[] sums = new double[result[0].length];
+
         for(int i = 0; i < result.length; i++) {
-            sum1 += labels.get(i, result[i][0]);
-            sum2 += labels.get(i, result[i][1]);
-            sum3 += labels.get(i, result[i][2]);
+            for(int j = 0; j < result[i].length; j++) {
+                sums[j] += labels.get(i, result[i][j]);
+            }
         }
-        System.out.println("First: "+sum1+"/"+result.length+ " = " + (sum1/result.length));
-        System.out.println("Second: "+sum2+"/"+result.length+ " = " + (sum2/result.length));
-        System.out.println("Third: "+sum3+"/"+result.length+ " = " + (sum3/result.length));
+        for(int i = 0; i < sums.length; i++) {
+            if(sums[i] > 0) System.out.println(i+": "+sums[i]+"/"+result.length+ " = " + (sums[i]/result.length));
+        }
         if(test) {
-            correctTest[0] += sum1;
-            correctTest[1] += sum2;
-            correctTest[2] += sum3;
-            totalTest += result.length;
             System.out.println("OVERALL");
-            System.out.println("First: "+correctTest[0]+"/"+totalTest+ " = " + (correctTest[0]/totalTest));
-            System.out.println("Second: "+correctTest[1]+"/"+totalTest+ " = " + (correctTest[1]/totalTest));
-            System.out.println("Third: "+correctTest[2]+"/"+totalTest+ " = " + (correctTest[2]/totalTest));
+            totalTest += result.length;
+            for(int i = 0; i < sums.length; i++) {
+                correctTest[i] += sums[i];
+                if(correctTest[i] > 0) {
+                    System.out.println(i+": "+correctTest[i]+"/"+totalTest+ " = " + (correctTest[i]/totalTest));
+                    bw.write(i+": "+correctTest[i]+"/"+totalTest+ " = " + (correctTest[i]/totalTest)+"\n");
+                }
+            }
         }
         else {
-            correctTrain[0] += sum1;
-            correctTrain[1] += sum2;
-            correctTrain[2] += sum3;
-            totalTrain += result.length;
             System.out.println("OVERALL");
-            System.out.println("First: "+correctTrain[0]+"/"+totalTrain+ " = " + (correctTrain[0]/totalTrain));
-            System.out.println("Second: "+correctTrain[1]+"/"+totalTrain+ " = " + (correctTrain[1]/totalTrain));
-            System.out.println("Third: "+correctTrain[2]+"/"+totalTrain+ " = " + (correctTrain[2]/totalTrain));
+            totalTrain += result.length;
+            for(int i = 0; i < sums.length; i++) {
+                correctTrain[i] += sums[i];
+                if(correctTrain[i] > 0) System.out.println(i+": "+correctTrain[i]+"/"+totalTrain+ " = " + (correctTrain[i]/totalTrain));
+            }
         }
+        bw.close();
     }
 
     private HashMap<Double, String> reverseMap(HashMap<String, Double> map) {
@@ -163,8 +174,6 @@ public class LeafCNNAll {
     }
 
     public void compareClasses(int[][] result, DoubleMatrix labels, HashMap<String, Double> labelMap) throws Exception {
-        double[] totalCount = new double[labels.columns];
-        double[] count = new double[labels.columns];
         HashMap<Double, String> newMap = reverseMap(labelMap);
         for(int i = 0; i < result.length; i++) {
             int labelNo = -1;

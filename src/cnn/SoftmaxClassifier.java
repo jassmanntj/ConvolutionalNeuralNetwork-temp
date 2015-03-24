@@ -260,7 +260,7 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 
 	@Override
 	public DoubleMatrix compute(DoubleMatrix input) {
-		return input.mmul(theta);
+		return Utils.sigmoid(input.mmul(theta));
 	}
 
 	@Override

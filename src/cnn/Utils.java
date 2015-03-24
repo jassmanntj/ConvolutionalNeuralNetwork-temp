@@ -138,31 +138,22 @@ public class Utils {
 	}
 	
 	public static int[][] computeResults(DoubleMatrix result) {
-		int[][] results = new int[result.rows][3];
+		int[][] results = new int[result.rows][result.columns];
 		for(int i = 0; i < result.rows; i++) {
-			double current1 = 0;
-			double current2 = 0;
-			double current3 = 0;
+            double[] current = new double[result.columns];
 			for(int j = 0; j < result.columns; j++) {
-				if(result.get(i,j) > current1) {
-					current3 = current2;
-					current2 = current1;
-					current1 = result.get(i,j);
-					results[i][2] = results[i][1];
-					results[i][1] = results[i][0];
-					results[i][0] = j;
-				}
-				else if(result.get(i,j) > current2) {
-					current3 = current2;
-					current2 = result.get(i,j);
-					results[i][2] = results[i][1];
-					results[i][1] = j;
-				}
-				else if(result.get(i,j) > current3) {
-					current3 = result.get(i,j);
-					results[i][2] = j;
-				}
-				
+                for(int k = 0; k < result.columns; k++) {
+                    if(result.get(i,j) > current[k]) {
+                        for(int l = result.columns-1; l > k; l--) {
+                            current[l] = current[l-1];
+                            results[i][l] = results[i][l-1];
+                        }
+                        current[k] = result.get(i,j);
+                        results[i][k] = j;
+                        int a = 5;
+                        break;
+                    }
+                }
 			}
 		}
 		return results;

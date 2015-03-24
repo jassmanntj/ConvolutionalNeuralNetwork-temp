@@ -265,7 +265,7 @@ public class ImageLoader {
                 imageNo.swapRows(a, b);
             }
             for(double k : imageNo.data) {
-                if (k == i) {
+                if (k == i || k == i+1 || k == i+2) {
                     if(testImgs == null) {
                         testImgs = images[(int)j].getRow((int)k);
                         testLbls = labels[(int)j].getRow((int)k);

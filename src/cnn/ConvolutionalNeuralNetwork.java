@@ -21,8 +21,8 @@ public class ConvolutionalNeuralNetwork {
 	
 	public DoubleMatrix train(DoubleMatrix input, DoubleMatrix labels, int iterations) throws IOException {
 		for(int i = 0; i < layers.length; i++) {
-			File f = new File(name+"Layer"+i+".csv");
-			if(f.exists() || new File(0+name+"Layer"+i+".layer").exists()) {
+			File f = new File(name+"Layer"+i+".layer");
+			if(f.exists() || new File(name+"Layer"+i+".layer0").exists()) {
 				System.out.println("ALayer"+i);
 				layers[i].loadLayer(name+"Layer"+i+".layer");
 				input = layers[i].compute(input);

@@ -140,18 +140,18 @@ public class DeepNN extends NeuralNetworkLayer implements DiffFunction {
 	@Override
 	public void writeLayer(String filename) {
 		for(int i = 0; i < saes.length; i++) {
-			saes[i].writeLayer(i+filename);
+			saes[i].writeLayer(filename+i);
 		}
-		sc.writeLayer(saes.length+filename);
+		sc.writeLayer(filename+saes.length);
 		
 	}
 
 	@Override
 	public void loadLayer(String filename) {
 		for(int i = 0; i < saes.length; i++) {
-			saes[i].loadLayer(i+filename);
+			saes[i].loadLayer(filename+i);
 		}
-		sc.loadLayer(saes.length+filename);
+		sc.loadLayer(filename+saes.length);
 	}
 
     @Override
