@@ -128,16 +128,6 @@ public class DeepNN extends NeuralNetworkLayer implements DiffFunction {
 	}
 
 	@Override
-	public DoubleMatrix getTheta() {
-		return null;
-	}
-
-	@Override
-	public DoubleMatrix getBias() {
-		return null;
-	}
-
-	@Override
 	public void writeLayer(String filename) {
 		for(int i = 0; i < saes.length; i++) {
 			saes[i].writeLayer(filename+i);
@@ -153,9 +143,4 @@ public class DeepNN extends NeuralNetworkLayer implements DiffFunction {
 		}
 		sc.loadLayer(filename+saes.length);
 	}
-
-    @Override
-    public DoubleMatrix feedForward(DoubleMatrix input) {
-        return compute(input);
-    }
 }

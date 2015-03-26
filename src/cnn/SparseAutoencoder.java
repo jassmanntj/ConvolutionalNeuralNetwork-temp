@@ -267,10 +267,6 @@ public class SparseAutoencoder extends NeuralNetworkLayer implements DiffFunctio
 		result[0][2] = Utils.sigmoid(result[1][2]);
 		return result;
 	}
-
-    public DoubleMatrix feedForward(DoubleMatrix input) {
-        return compute(input);
-    }
 	
 	public void writeTheta(String filename) {
 		try {

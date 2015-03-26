@@ -38,14 +38,13 @@ public class Utils {
 		return input;
 	}
 	
-	public static DoubleMatrix conv2d(DoubleMatrix input, DoubleMatrix kernel) {
+	public static DoubleMatrix conv2d(DoubleMatrix input, DoubleMatrix kernel, boolean valid) {
 		int inputRows = input.rows;
 		int inputCols = input.columns;
 		int kernelRows = kernel.rows;
 		int kernelCols = kernel.columns;
 		int totalRows = inputRows + kernelRows - 1;
 		int totalCols = inputCols + kernelCols - 1;
-		reverseMatrix(kernel);
 		input = DoubleMatrix.concatHorizontally(input, DoubleMatrix.zeros(input.rows, kernel.columns-1));
 		input = DoubleMatrix.concatVertically(input, DoubleMatrix.zeros(kernel.rows-1, input.columns));
 		kernel = DoubleMatrix.concatHorizontally(kernel, DoubleMatrix.zeros(kernel.rows, input.columns-kernel.columns));
@@ -60,13 +59,16 @@ public class Utils {
 		int rowSize = inputRows - kernelRows + 1;
 		int colSize = inputCols - kernelCols + 1;
 		DoubleMatrix result = kernelDFT.getReal();
-		int startRows = (totalRows-rowSize)/2;
-		int startCols = (totalCols-colSize)/2;
-		result = result.getRange(startRows, startRows+rowSize,startCols, startCols+colSize);
-		return result;
+        if(!valid) return result;
+        else {
+            int startRows = (totalRows - rowSize) / 2;
+            int startCols = (totalCols - colSize) / 2;
+            result = result.getRange(startRows, startRows + rowSize, startCols, startCols + colSize);
+            return result;
+        }
 	}
 	
-	private static DoubleMatrix reverseMatrix(DoubleMatrix mat) {
+	public static DoubleMatrix reverseMatrix(DoubleMatrix mat) {
 		for(int i = 0; i < mat.rows/2; i++) {
 			mat.swapRows(i, mat.rows-i-1);
 		}

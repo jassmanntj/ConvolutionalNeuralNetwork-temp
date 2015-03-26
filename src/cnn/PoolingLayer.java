@@ -88,12 +88,6 @@ public class PoolingLayer {
         return expandedMatrix;
     }
 
-    public DoubleMatrix getTheta() {
-        return null;
-    }
-    public DoubleMatrix getBias() {
-        return null;
-    }
     public void writeTheta(String filename) {
     }
     public DataContainer train(DataContainer input, DoubleMatrix output, int iterations) throws IOException {

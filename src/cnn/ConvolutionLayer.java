@@ -152,7 +152,7 @@ public class ConvolutionLayer extends NeuralNetworkLayer {
 			feature.reshape(patchDim, patchDim);
 			DoubleMatrix image = currentImage.getRange(0, 1, imageSize*channel,imageSize*channel+imageSize);
 			image.reshape(imageRows, imageCols);
-			DoubleMatrix conv = Utils.conv2d(image, feature);
+			DoubleMatrix conv = Utils.conv2d(image, Utils.reverseMatrix(feature), true);
 			convolvedFeature.addi(conv);
 		}
 		return Utils.sigmoid(convolvedFeature.add(whitenedBias.get(featureNum)));
@@ -227,27 +227,6 @@ public class ConvolutionLayer extends NeuralNetworkLayer {
 	public DoubleMatrix compute(DoubleMatrix input) {
 		DoubleMatrix pooledFeatures = convolve(input, this.whitenedTheta);
 		return pooledFeatures;
-	}
-
-    public DoubleMatrix feedForward(DoubleMatrix input) {
-        try {
-            return conv(input, whitenedTheta);
-        }
-        catch(IOException e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return null;
-    }
-
-	@Override
-	public DoubleMatrix getTheta() {
-		return null;
-	}
-
-	@Override
-	public DoubleMatrix getBias() {
-		return null;
 	}
 
 	@Override

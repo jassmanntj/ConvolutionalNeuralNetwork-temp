@@ -26,15 +26,15 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		this.lambda = lambda;
 	}
 	
-	public DoubleMatrix getTheta() {
-		return theta;
-	}
-	
 	private void initializeParams() {
 		double r = Math.sqrt(6)/Math.sqrt(inputSize+1);
 		theta = DoubleMatrix.rand(inputSize, outputSize).muli(2 * r).subi(r);
 	}
-	
+
+    public DoubleMatrix getTheta() {
+        return theta;
+    }
+
 	public DoubleMatrix computeNumericalGradient(DoubleMatrix input, DoubleMatrix output) {
 		double epsilon = 0.0001;
 		DoubleMatrix numGrad = DoubleMatrix.zeros(theta.rows, theta.columns);
@@ -263,8 +263,4 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		return Utils.sigmoid(input.mmul(theta));
 	}
 
-	@Override
-	public DoubleMatrix getBias() {
-		return null;
-	}
 }

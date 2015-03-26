@@ -31,11 +31,6 @@ public class LeafCNNAll {
         new LeafCNNAll().run();
     }
 
-    public LeafCNNAll() {
-        totalTest = 0;
-        totalTrain = 0;
-    }
-
     public void run() throws Exception {
         int patchSize = 5;
         int poolSize = 4;
@@ -54,11 +49,13 @@ public class LeafCNNAll {
         ImageLoader loader = new ImageLoader();
         File folder = new File("C:/Users/jassmanntj/Desktop/CA-Leaves");
         HashMap<String, Double> labelMap = loader.getLabelMap(folder);
-        count = new double[labelMap.size()];
-        totalCount = new double[labelMap.size()];
-        correctTest = new double[labelMap.size()];
-        correctTrain = new double[labelMap.size()];
         while(numPatches < 300) {
+            count = new double[labelMap.size()];
+            totalCount = new double[labelMap.size()];
+            correctTest = new double[labelMap.size()];
+            correctTrain = new double[labelMap.size()];
+            totalTest = 0;
+            totalTrain = 0;
             for (int i = 0; i < 30; i += 3) {
                 String resFile = numPatches + "-Cross-" + patchSize + "-" + poolSize + "-" + iterations + "." + i;
                 if (!load || !(new File("data/TrainImgs-" + resFile + ".mat").exists())) {
@@ -109,9 +106,8 @@ public class LeafCNNAll {
     }
 
     public void compareResults(int[][] result, DoubleMatrix labels, boolean test) throws IOException {
-        FileWriter fw = new FileWriter("data/ConvolutionSizeResults");
+        FileWriter fw = new FileWriter("data/ConvolutionSizeResults", true);
         BufferedWriter bw = new BufferedWriter(fw);
-        bw.write(numPatches+"\n");
         double[] sums = new double[result[0].length];
 
         for(int i = 0; i < result.length; i++) {
@@ -125,11 +121,12 @@ public class LeafCNNAll {
         if(test) {
             System.out.println("OVERALL");
             totalTest += result.length;
+            if(totalTest==420) bw.write(numPatches+"\n");
             for(int i = 0; i < sums.length; i++) {
                 correctTest[i] += sums[i];
                 if(correctTest[i] > 0) {
                     System.out.println(i+": "+correctTest[i]+"/"+totalTest+ " = " + (correctTest[i]/totalTest));
-                    bw.write(i+": "+correctTest[i]+"/"+totalTest+ " = " + (correctTest[i]/totalTest)+"\n");
+                    if(totalTest==420) bw.write(i+": "+correctTest[i]+"/"+totalTest+ " = " + (correctTest[i]/totalTest)+"\n");
                 }
             }
         }
