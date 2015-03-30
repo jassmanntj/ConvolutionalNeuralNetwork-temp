@@ -21,14 +21,17 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 	private DoubleMatrix theta;
 	private DoubleMatrix input;
 	private DoubleMatrix output;
+	private DoubleMatrix tVelocity;
 	
 	public SoftmaxClassifier(double lambda) {
 		this.lambda = lambda;
+		initializeParams();
 	}
 	
 	private void initializeParams() {
 		double r = Math.sqrt(6)/Math.sqrt(inputSize+1);
 		theta = DoubleMatrix.rand(inputSize, outputSize).muli(2 * r).subi(r);
+		tVelocity = new DoubleMatrix(inputSize, outputSize);
 	}
 
     public DoubleMatrix getTheta() {
@@ -83,6 +86,12 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		MatrixFunctions.logi(p);
 		double cost = -p.mul(output).sum()/m + theta.mul(theta).sum()*lambda/2;
 		return new CostResult(cost, thetaGrad, null, delta);
+	}
+
+	public DoubleMatrix backpropagation(CostResult c, double momentum, double alpha) {
+		tVelocity.muli(momentum).addi(c.thetaGrad.mul(alpha));
+		theta.subi(tVelocity);
+		return c.delta;
 	}
 
 	public void gradientDescent(DoubleMatrix input, DoubleMatrix output, int iterations, double alpha) {
@@ -171,11 +180,6 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 			e.printStackTrace();
 		}
 	}
-
-    @Override
-    public DoubleMatrix feedForward(DoubleMatrix input) {
-        return compute(input);
-    }
 
     public DoubleMatrix loadTheta(String filename, DoubleMatrix input) {
 		try {
