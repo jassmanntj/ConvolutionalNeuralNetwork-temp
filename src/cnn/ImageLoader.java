@@ -22,6 +22,7 @@ import org.imgscalr.Scalr.Rotation;
 public class ImageLoader {
 	DoubleMatrix images[];
 	DoubleMatrix labels[];
+    DoubleMatrix imgArr[][];
     DoubleMatrix imgs;
     DoubleMatrix lbls;
     DoubleMatrix testImgs;
@@ -41,6 +42,11 @@ public class ImageLoader {
         this.labelMap = labelMap;
         this.names = new ArrayList<String>();
         this.counts = countImages(folder, labelMap);
+        int total = 0;
+        for(int c : counts) {
+            total += c;
+        }
+        this.imgArr = new DoubleMatrix[total][3];
         images = new DoubleMatrix[labelMap.size()];
         labels = new DoubleMatrix[labelMap.size()];
         for(int i = 0; i < labelMap.size(); i++) {
@@ -51,25 +57,15 @@ public class ImageLoader {
         for(int i = 0; i < imageNo.length; i++) {
             imageNo.put(i, i);
         }
-        Random rand = new Random(System.currentTimeMillis());
-        for(int i = 0; i < 10000; i++) {
-            int a = rand.nextInt(images.length);
-            int b = rand.nextInt(images.length);
-            imageNo.swapRows(a, b);
-        }
 
         ExecutorService executor = Executors.newFixedThreadPool(Utils.NUMTHREADS);
         for(File leaf : folder.listFiles()) {
             int i = 0;
             if(leaf.isDirectory() && labelMap.containsKey(leaf.getName())) {
-                for(File photos : leaf.listFiles()) {
-                    //if(photos.getName().equals("photograph")) {
-                    for(File image : photos.listFiles()) {
-                        Runnable ip = new ImageProcessor(image, i, labelMap.get(leaf.getName()), imageNo, z++);
-                        executor.execute(ip);
-                        i++;
-                    }
-                    //}
+                for(File image : leaf.listFiles()) {
+                    Runnable ip = new ImageProcessor2(image, i, labelMap.get(leaf.getName()), imageNo, z++);
+                    executor.execute(ip);
+                    i++;
                 }
             }
         }
@@ -135,14 +131,77 @@ public class ImageLoader {
         }
     }
 
+    private class ImageProcessor2 implements Runnable {
+        private File image;
+        private double leafNo;
+        private int num;
+        private int imgNo;
+        private int z;
+        public ImageProcessor2(File image, int num, double leafNo, DoubleMatrix imageNo, int z) {
+            this.image = image;
+            this.num = num;
+            this.imgNo = num;
+            this.z = z;
+            this.leafNo = leafNo;
+        }
+
+        public void run(){
+            System.out.println(z);
+            BufferedImage img = null;
+            try {
+                img = ImageIO.read(image);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (img.getHeight() < img.getWidth()) {
+                img = Scalr.rotate(img, Rotation.CW_90);
+            }
+            if (img.getHeight() * 3 < img.getWidth() * 4) {
+                BufferedImage newImage = new BufferedImage(img.getWidth(), img.getWidth() * 4 / 3, img.getType());
+                Graphics g = newImage.getGraphics();
+                g.setColor(Color.black);
+                g.fillRect(0, 0, newImage.getWidth(), newImage.getHeight());
+                g.drawImage(img, 0, (newImage.getHeight() - img.getHeight()) / 2, null);
+                g.dispose();
+                img = newImage;
+                newImage.flush();
+            } else if (img.getHeight() * 3 > img.getWidth() * 4) {
+                BufferedImage newImage = new BufferedImage(img.getHeight() * 3 / 4, img.getHeight(), img.getType());
+                Graphics g = newImage.getGraphics();
+                g.setColor(Color.black);
+                g.fillRect(0, 0, newImage.getWidth(), newImage.getHeight());
+                g.drawImage(img, (newImage.getWidth() - img.getWidth()) / 2, 0, null);
+                g.dispose();
+                img = newImage;
+                newImage.flush();
+            }
+            img = Scalr.resize(img, Method.QUALITY, width, height);
+            int[] pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
+            img.flush();
+            for(int i = 0; i < channels; i++) {
+                imgArr[z][i] = new DoubleMatrix(height, width);
+            }
+            if (pixels.length == width * height) {
+                for (int i = 0; i < pixels.length; i++) {
+                    for (int j = 0; j < channels; j++) {
+                        imgArr[z][j].put(i/width, i%width, ((pixels[i] >>> (8 * j)) & 0xFF));
+                    }
+                }
+                labels[(int)leafNo].put(num, (int)leafNo, 1);
+            }
+        }
+    }
+
+    public DoubleMatrix[][] getImgArr() {
+        return imgArr;
+    }
+
     private int[] countImages(File folder, HashMap<String, Double> labelMap) {
         int count[] = new int[labelMap.size()];
         for(File leaf : folder.listFiles()) {
             if (leaf.isDirectory() && labelMap.containsKey(leaf.getName())) {
-                for (File photos : leaf.listFiles()) {
-                    for (File image : photos.listFiles()) {
-                        count[labelMap.get(leaf.getName()).intValue()]++;
-                    }
+                for (File image : leaf.listFiles()) {
+                    count[labelMap.get(leaf.getName()).intValue()]++;
                 }
             }
         }
@@ -154,11 +213,9 @@ public class ImageLoader {
 			names = new ArrayList<String>();
 			for(File leaf : folder.listFiles()) {
 				if(leaf.isDirectory()) {
-					for(File photos : leaf.listFiles()) {
-						for(File image : photos.listFiles()) {
-							names.add(image.getName());
-						}
-					}
+                    for(File image : leaf.listFiles()) {
+                        names.add(image.getName());
+                    }
 				}
 			}
 		}

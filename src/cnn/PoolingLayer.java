@@ -2,99 +2,74 @@ package cnn;
 
 import org.jblas.DoubleMatrix;
 
-import java.io.IOException;
-
 /**
- * Created by jassmanntj on 3/22/2015.
+ * Created by Tim on 4/1/2015.
  */
-public class PoolingLayer {
-    /*private int poolDimX;
-    private int poolDimY;
-    private int resultRows;
-    private int resultCols;
-    private int channels;
-
-    public DoubleMatrix getA() {
-        return null;
+public class PoolingLayer extends ConvPoolLayer {
+    private int poolDim;
+    public PoolingLayer(int poolDim) {
+        this.poolDim = poolDim;
     }
 
-
-    public PoolingLayer(int poolDim, int features) {
-        this.poolDimX = poolDim;
-        this.poolDimY = poolDim;
-    }
-
-    public PoolingLayer(int poolDimX, int poolDimY, int features) {
-        this.poolDimX = poolDimX;
-        this.poolDimY = poolDimY;
-    }
-
-    public DataContainer feedForward(DataContainer input) {
-        return compute(input);
-    }
-
-    @Override
-    public DoubleMatrix backPropagation(DataContainer[] results, int layer, DoubleMatrix y, double momentum, double alpha) {
-        DoubleMatrix delta = expand(y);
-        return delta;
-    }
-
-    public DataContainer compute(DataContainer in) {
-        DoubleMatrix[][] input = in.getDataArray();
-        this.resultRows = input[0][0].rows/poolDimY;
-        this.resultCols = input[0][0].columns/poolDimX;
-        this.channels = input[0].length;
-        DoubleMatrix pooledFeatures[][] = new DoubleMatrix[input.length][input[0].length];
-
-        for(int imageNum = 0; imageNum < input.length; imageNum++) {
-            for(int featureNum = 0; featureNum < input[imageNum].length; featureNum++) {
-                pooledFeatures[imageNum][featureNum] = pool(input[imageNum][featureNum]);
+    public DoubleMatrix[][] compute(DoubleMatrix[][] in) {
+        DoubleMatrix[][] result = new DoubleMatrix[in.length][in[0].length];
+        for(int i = 0; i < in.length; i++) {
+            for(int j = 0; j < in[i].length; j++) {
+                result[i][j] = pool(in[i][j]);
             }
         }
-        return new DataContainer(pooledFeatures);
+        return result;
     }
 
-    public DoubleMatrix pool(DoubleMatrix convolvedFeature) {
-        DoubleMatrix pooledFeature = new DoubleMatrix(resultRows, resultCols);
+    public DoubleMatrix[][] backPropagation(DoubleMatrix[][] input, DoubleMatrix[][] output, DoubleMatrix delta[][], double momentum, double alpha) {
+        DoubleMatrix[][] result = new DoubleMatrix[delta.length][delta[0].length];
+        for(int i = 0; i < delta.length; i++) {
+            for(int j = 0; j < delta[i].length; j++) {
+                result[i][j] = expand(delta[i][j]);
+            }
+        }
+        return result;
+    }
+
+    public DoubleMatrix[][] gradientCheck(DoubleMatrix[][] in, DoubleMatrix labels, DoubleMatrix[][] input, DoubleMatrix[][] output, DoubleMatrix[][] delta, NeuralNetwork cnn) {
+        DoubleMatrix[][] result = new DoubleMatrix[delta.length][delta[0].length];
+        for(int i = 0; i < delta.length; i++) {
+            for(int j = 0; j < delta[i].length; j++) {
+                result[i][j] = expand(delta[i][j]);
+            }
+        }
+        return result;
+    }
+
+        private DoubleMatrix pool(DoubleMatrix convolvedFeature) {
+        int resultRows = convolvedFeature.rows/poolDim;
+        int resultCols = convolvedFeature.columns/poolDim;
+        DoubleMatrix result = new DoubleMatrix(resultRows, resultCols);
         for(int poolRow = 0; poolRow < resultRows; poolRow++) {
             for(int poolCol = 0; poolCol < resultCols; poolCol++) {
-                DoubleMatrix patch = convolvedFeature.getRange(poolRow*poolDimX, poolRow*poolDimX+poolDimX, poolCol*poolDimY, poolCol*poolDimY+poolDimY);
-                pooledFeature.put(poolRow, poolCol, patch.mean());
+                DoubleMatrix patch = convolvedFeature.getRange(poolRow*poolDim, poolRow*poolDim+poolDim, poolCol*poolDim, poolCol*poolDim+poolDim);
+                result.put(poolRow, poolCol, patch.mean());
             }
         }
-        return pooledFeature;
+        return result;
     }
 
     private DoubleMatrix expand(DoubleMatrix in) {
-        System.out.println(in.rows+"::"+in.columns);
-        DoubleMatrix expandedMatrix = new DoubleMatrix(in.rows*poolDimX, in.columns*poolDimY);
-        int srcRows = resultRows * poolDimY;
-        int srcCols = resultCols * poolDimX;
-        double scale = (poolDimX * poolDimY);
-        for(int i = 0; i < in.rows; i++) {
-            for(int j = 0; j < this.channels; j++) {
-                for(int k = 0; k < resultRows; k++) {
-                    for(int l = 0; l < resultCols; l++) {
-                        double value = in.get(k, j*resultRows*resultCols+k*resultCols+j)/scale;
-                        for(int m = 0; m < poolDimY; m++) {
-                            for(int n = 0; n < poolDimX; n++) {
-                                expandedMatrix.put(i, j*srcRows*srcCols+(k+m)*srcCols+l+n, value);
-                            }
+        if(poolDim > 1) {
+            DoubleMatrix expandedMatrix = new DoubleMatrix(in.rows * poolDim, in.columns * poolDim);
+            double scale = (poolDim * poolDim);
+            for (int i = 0; i < in.rows; i++) {
+                for (int j = 0; j < in.columns; j++) {
+                    double value = in.get(i, j) / scale;
+                    for (int k = 0; k < poolDim; k++) {
+                        for (int l = 0; l < poolDim; l++) {
+                            expandedMatrix.put(i * poolDim + k, j * poolDim + l, value);
                         }
                     }
                 }
             }
+            return expandedMatrix;
         }
-        return expandedMatrix;
+        else return in;
     }
-
-    public void writeTheta(String filename) {
-    }
-    public DataContainer train(DataContainer input, DoubleMatrix output, int iterations) throws IOException {
-        return compute(input);
-    }
-    public void writeLayer(String filename) {
-    }
-    public void loadLayer(String filename) {
-    }*/
 }

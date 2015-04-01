@@ -12,7 +12,7 @@ import org.jblas.MatrixFunctions;
 import edu.stanford.nlp.optimization.DiffFunction;
 import edu.stanford.nlp.optimization.QNMinimizer;
 
-public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunction{
+public class SoftmaxClassifier implements DiffFunction{
 	private static final boolean DEBUG = true;
 	private int inputSize;
 	private int outputSize;
@@ -23,6 +23,13 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 	private DoubleMatrix output;
 	private DoubleMatrix tVelocity;
 	
+	public SoftmaxClassifier(double lambda, int inputSize, int outputSize) {
+		this.lambda = lambda;
+		this.inputSize = inputSize;
+		this.outputSize = outputSize;
+		initializeParams();
+	}
+
 	public SoftmaxClassifier(double lambda) {
 		this.lambda = lambda;
 		initializeParams();
@@ -33,10 +40,6 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		theta = DoubleMatrix.rand(inputSize, outputSize).muli(2 * r).subi(r);
 		tVelocity = new DoubleMatrix(inputSize, outputSize);
 	}
-
-    public DoubleMatrix getTheta() {
-        return theta;
-    }
 
 	public DoubleMatrix computeNumericalGradient(DoubleMatrix input, DoubleMatrix output) {
 		double epsilon = 0.0001;
@@ -82,7 +85,7 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		MatrixFunctions.expi(p);
 		p.diviColumnVector(p.rowSums());
 		DoubleMatrix thetaGrad =input.transpose().mmul(p.sub(output)).div(m).add(theta.mul(lambda));
-		DoubleMatrix delta = p.sub(output).mmul(theta.transpose()).mul(Utils.sigmoidGradient(input));
+		DoubleMatrix delta = p.sub(output).mmul(theta.transpose());
 		MatrixFunctions.logi(p);
 		double cost = -p.mul(output).sum()/m + theta.mul(theta).sum()*lambda/2;
 		return new CostResult(cost, thetaGrad, null, delta);
@@ -92,6 +95,16 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		tVelocity.muli(momentum).addi(c.thetaGrad.mul(alpha));
 		theta.subi(tVelocity);
 		return c.delta;
+	}
+
+	public void gradientCheck(DoubleMatrix input, DoubleMatrix output) {
+		CostResult result = cost(input, output, theta);
+		DoubleMatrix numGrad = computeNumericalGradient(input, output);
+		DoubleMatrix gradMin = numGrad.dup();
+		DoubleMatrix gradAdd = numGrad.dup();
+		gradMin.subi(result.thetaGrad);
+		gradAdd.addi(result.thetaGrad);
+		System.out.println("SC Diff: " + gradMin.norm2() / gradAdd.norm2());
 	}
 
 	public void gradientDescent(DoubleMatrix input, DoubleMatrix output, int iterations, double alpha) {
@@ -252,7 +265,6 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		return res.thetaGrad.data;
 	}
 
-	@Override
 	public DoubleMatrix train(DoubleMatrix input, DoubleMatrix output, int iterations) {
 		inputSize = input.columns;
 		outputSize = output.columns;
@@ -262,7 +274,6 @@ public class SoftmaxClassifier extends NeuralNetworkLayer implements DiffFunctio
 		
 	}
 
-	@Override
 	public DoubleMatrix compute(DoubleMatrix input) {
 		return Utils.sigmoid(input.mmul(theta));
 	}

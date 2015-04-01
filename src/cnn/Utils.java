@@ -13,7 +13,7 @@ import org.jblas.Singular;
 import org.jtransforms.fft.DoubleFFT_2D;
 
 public class Utils {
-    public static final int NUMTHREADS = 8;
+    public static final int NUMTHREADS = 4;
     public static final int NONE = 0;
     public static final int SIGMOID = 1;
     public static final int PRELU = 2;
@@ -45,6 +45,7 @@ public class Utils {
 		int kernelCols = kernel.columns;
 		int totalRows = inputRows + kernelRows - 1;
 		int totalCols = inputCols + kernelCols - 1;
+		kernel = reverseMatrix(kernel);
 		input = DoubleMatrix.concatHorizontally(input, DoubleMatrix.zeros(input.rows, kernel.columns-1));
 		input = DoubleMatrix.concatVertically(input, DoubleMatrix.zeros(kernel.rows-1, input.columns));
 		kernel = DoubleMatrix.concatHorizontally(kernel, DoubleMatrix.zeros(kernel.rows, input.columns-kernel.columns));
@@ -69,6 +70,7 @@ public class Utils {
 	}
 	
 	public static DoubleMatrix reverseMatrix(DoubleMatrix mat) {
+		mat = mat.dup();
 		for(int i = 0; i < mat.rows/2; i++) {
 			mat.swapRows(i, mat.rows-i-1);
 		}

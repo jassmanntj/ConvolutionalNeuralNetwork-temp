@@ -3,7 +3,7 @@ package cnn.execute;
 /**
  * Created by jassmanntj on 3/20/2015.
  */
-import java.io.BufferedWriter;
+/*import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -85,7 +85,7 @@ public class LeafCNNAll {
                 SparseAutoencoder[] saes = {ae2};
                 DeepNN dn = new DeepNN(saes, sc);
                 NeuralNetworkLayer[] nnl = {cl, dn};
-                ConvolutionalNeuralNetwork cnn = new ConvolutionalNeuralNetwork(nnl, "data/" + resFile);
+                NeuralNetwork cnn = new NeuralNetwork(nnl, "data/" + resFile);
                 System.out.println("LABELS:" + labels.rows + "x" + labels.columns);
                 DoubleMatrix result = cnn.train(images, labels, iterations);
                 int[][] results = Utils.computeResults(result);
@@ -191,4 +191,4 @@ public class LeafCNNAll {
             System.out.println(newMap.get((double)i)+": " +count[i]+"/"+totalCount[i]+" = "+(count[i]/totalCount[i]));
         }
     }
-}
+}*/

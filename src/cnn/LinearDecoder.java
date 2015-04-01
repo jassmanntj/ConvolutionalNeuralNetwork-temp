@@ -16,7 +16,7 @@ import org.jblas.MatrixFunctions;
 import edu.stanford.nlp.optimization.DiffFunction;
 import edu.stanford.nlp.optimization.QNMinimizer;
 
-public class LinearDecoder extends NeuralNetworkLayer implements DiffFunction{
+public class LinearDecoder implements DiffFunction{
 	private static final boolean DEBUG = false;
 	private int inputSize;
 	private int hiddenSize;
@@ -30,6 +30,8 @@ public class LinearDecoder extends NeuralNetworkLayer implements DiffFunction{
 	private DoubleMatrix bias1;
 	private DoubleMatrix bias2;
 	private DoubleMatrix input;
+	private DoubleMatrix biasVelocity;
+	private DoubleMatrix thetaVelocity;
 	private CostResult[] currentCost;
 	private int patchSize;
 	
@@ -166,6 +168,29 @@ public class LinearDecoder extends NeuralNetworkLayer implements DiffFunction{
 		results[0] = new CostResult(0, thetaGrad[0], biasGrad[0], delta2);
 		results[1] = new CostResult(costSum, thetaGrad[1], biasGrad[1], delta3);
 		return results;
+	}
+
+	public DoubleMatrix backpropagation(DoubleMatrix input, DoubleMatrix delta3, double momentum, double alpha) {
+		//sparsity term
+		//DoubleMatrix betaTerm = means.rdiv(-rho).add(means.rsub(1).rdiv(1-rho)).mul(beta);
+
+		//delta2
+		DoubleMatrix delta2 = delta3.mmul(theta1.transpose());
+		delta2.muli(Utils.sigmoidGradient(input));
+
+		//W1grad
+		DoubleMatrix thetaGrad = input.transpose().mmul(delta3);
+		thetaGrad.divi(input.length);
+
+		//b1grad
+		DoubleMatrix biasGrad = delta3.columnMeans();
+
+		biasVelocity.muli(momentum).add(biasGrad.mul(alpha));
+		thetaVelocity.muli(momentum).addi(thetaGrad.mul(alpha));
+		theta1.subi(thetaVelocity);
+		bias1.subi(biasVelocity);
+
+		return delta2;
 	}
 	
 	
