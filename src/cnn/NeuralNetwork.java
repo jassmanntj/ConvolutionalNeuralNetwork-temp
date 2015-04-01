@@ -24,6 +24,7 @@ public class NeuralNetwork {
     }
 
     public void train(DoubleMatrix[][] input, DoubleMatrix labels, int iterations, int batchSize, double momentum, double alpha) throws IOException {
+        compareResults(Utils.computeResults(compute(input)), labels);
         int[] indices = new int[input.length];
         for(int i = 0; i < indices.length; i++) {
             indices[i] = i;
@@ -61,7 +62,21 @@ public class NeuralNetwork {
                     delt = cls[k].backPropagation(convResults[k], convResults[k+1], delt, momentum, alpha);
                 }
             }
-            System.out.println("Cost: "+cost);
+            System.out.println("Iteration "+i+" Cost: " + cost);
+            compareResults(Utils.computeResults(compute(input)), labels);
+        }
+    }
+
+    public void compareResults(int[][] result, DoubleMatrix labels) {
+        double[] sums = new double[result[0].length];
+
+        for(int i = 0; i < result.length; i++) {
+            for(int j = 0; j < result[i].length; j++) {
+                sums[j] += labels.get(i, result[i][j]);
+            }
+        }
+        for(int i = 0; i < sums.length; i++) {
+            if(sums[i] > 0) System.out.println(i+": "+sums[i]+"/"+result.length+ " = " + (sums[i]/result.length));
         }
     }
 
